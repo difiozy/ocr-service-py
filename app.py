@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from pdf2image import convert_from_path
 
 import numpy as np
@@ -10,7 +10,10 @@ import pytesseract
 import argparse
 import cv2
 import time
+import matplotlib.pyplot as plt
 
+hsv_min = np.array((2, 28, 65), np.uint8)
+hsv_max = np.array((26, 238, 255), np.uint8)
 app = Flask(__name__)
 UPLOAD_FOLDER = './static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -49,30 +52,33 @@ def upload_file():
         result_file = []
         for path in res_paths:
             coordinates = []
-            image = cv2.imread(path)
-            clahe = cv2.createCLAHE(clipLimit=50, tileGridSize=(50, 50))
-            lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-            l, a, b = cv2.split(lab)
-            l2 = clahe.apply(l)
-            lab = cv2.merge((l2, a, b))
-            img2 = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
-            gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-            ret, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
+            im1 = cv2.imread(path, 0)
+            im = cv2.imread(path)
+            h, w = im1.shape
+            size_image = h * w
 
-            kernel = np.ones((2, 2), np.uint8)
-            obr_img = cv2.erode(thresh, kernel, iterations=1)
+            ret, thresh_value = cv2.threshold(im1, 180, 255, cv2.THRESH_BINARY_INV)
 
-            obr_img = cv2.GaussianBlur(obr_img, (3, 3), 0)
-            contours, hierarchy = cv2.findContours(obr_img, cv2.CV_RETR_LIST, cv2.CHAIN_APPROX_TC89_L1)
+            kernel = np.ones((5, 5), np.uint8)
+            dilated_value = cv2.dilate(thresh_value, kernel, iterations=1)
 
+            contours, hierarchy = cv2.findContours(dilated_value, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            cordinates = []
+            for cnt in contours:
+                x, y, w, h = cv2.boundingRect(cnt)
+                cordinates.append((x, y, w, h))
+                # bounding the images
+                if (w * h)/size_image >= 0.005:
+                    cv2.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 1)
+
+            plt.imshow(im)
+            cv2.namedWindow('detecttable', cv2.WINDOW_NORMAL)
+            cv2.imwrite('detecttable.jpg', im)
             # cap = round(max(image.shape[0], image.shape[1]) * 0.005)
             cont_path = os.path.join(app.config['UPLOAD_FOLDER'], "contourse.txt")
-            with open(cont_path, 'w') as f:
-                f.write(str(contours))
             f = open(cont_path + '.txt', 'w')
             for i in range(0, len(contours)):
-
                 x, y, w, h = cv2.boundingRect(contours[i])
                 f.write(str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h) + '|')
                 coordinates.append((x, y, w, h))
