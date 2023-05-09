@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
   && apt-get -y install tesseract-ocr-rus \
+  && apt-get -y install tesseract-ocr\
   && apt-get install -y python3 python3-distutils python3-pip \
   && cd /usr/local/bin \
   && ln -s /usr/bin/python3 python \
