@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, make_response
 from werkzeug.utils import secure_filename
 from pdf2image import convert_from_path
 
-import json
 import numpy as np
 import os, shutil
 import pytesseract
@@ -15,11 +14,6 @@ app = Flask(__name__)
 UPLOAD_FOLDER = './static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
 
 
 @app.route('/uploader', methods=['POST'])

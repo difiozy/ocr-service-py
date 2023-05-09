@@ -2,9 +2,18 @@ version: "3"
 
 services:
   ocr:
-    image: "final_stage_build_ocr-parse_service:latest"
+    image: final_stage_build_ocr-parse_service:latest
     expose:
       - "5000"
+    depends_on:
+      - balancer
+
+  balancer:
+    image: ocr-balancer:latest
+    environment:
+      - NGINX_HOST=http://nginx:4000
+    ports:
+      - "5500:5500"
 
   nginx:
     image: nginx:latest

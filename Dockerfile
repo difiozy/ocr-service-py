@@ -21,7 +21,7 @@ RUN pip3 install pytesseract
 RUN pip3 install matplotlib
 RUN pip3 install opencv-python
 RUN pip3 install pillow
-
+RUN pip3 install requests
 RUN pip3 install pdf2image
 
 COPY requirements.txt req.txt

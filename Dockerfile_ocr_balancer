@@ -1,0 +1,13 @@
+FROM first_stage_build_ocr-parse_service:latest
+
+
+RUN mkdir -p /app
+WORKDIR /app
+COPY balancer_app.py .
+COPY templates /app/templates
+COPY static /app/static
+EXPOSE 5500
+RUN chmod -x balancer_app.py
+RUN mkdir -p /app/static/uploads
+ENTRYPOINT ["python3"]
+CMD ["balancer_app.py"]

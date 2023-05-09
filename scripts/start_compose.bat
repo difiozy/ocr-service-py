@@ -1,1 +1,1 @@
-docker-compose up --scale ocr=3 -d
+docker-compose up --scale ocr=2 -d
