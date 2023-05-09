@@ -1,10 +1,9 @@
 from flask import Flask, render_template, request, make_response
-from requests import Response
 from werkzeug.utils import secure_filename
-from pdf2image import convert_from_path
 from concurrent.futures import ThreadPoolExecutor
+from PyPDF2 import PdfWriter, PdfReader
 
-from os import environ
+
 import os, shutil
 import requests
 import time
@@ -34,11 +33,15 @@ def upload_file():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             f.save(filepath)
             cur_time = time.time()
-            images = convert_from_path(filepath, 900)
+            inputpdf = PdfReader(open(filepath, "rb"))
             res_paths = []
-            for i in range(len(images)):
+
+            for i in range(len(inputpdf.pages)):
                 cur_path = os.path.join(app.config['UPLOAD_FOLDER'], str(int(cur_time)) + str(i) + filename + '.png')
-                images[i].save(cur_path)
+                output = PdfWriter()
+                output.add_page(inputpdf.pages[i])
+                with open(cur_path, "wb") as outputStream:
+                    output.write(outputStream)
                 res_paths.append(cur_path)
 
             result_file = []
@@ -47,7 +50,6 @@ def upload_file():
                 processes = {executor.submit(recognize_file, nginx_path, query) for query in res_paths}
                 for result in concurrent.futures.as_completed(processes):
                     result_file.append(result.result())
-                    print(result.result())
 
             return make_response(str(result_file))
     finally:
@@ -62,9 +64,12 @@ def upload_file():
                 print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
-def recognize_file(host: str, filename: str) -> Response:
-    files = {'media': open(filename, 'rb')}
-    return requests.post(host, files=files)
+def recognize_file(host: str, filename: str) -> str:
+    headers = {"enctype": "multipart/form-data"}
+    with requests.post(host, files={'file': open(filename, 'rb')}, headers=headers) as response:
+        with open('res.txt', 'w') as f:
+            f.write(str(response.text))
+        return str(response.text)
 
 
 if __name__ == '__main__':
