@@ -42,7 +42,7 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         f.save(filepath)
         cur_time = time.time()
-        images = convert_from_path(filepath, 300)
+        images = convert_from_path(filepath, 900)
         res_paths = []
         for i in range(len(images)):
             cur_path = os.path.join(app.config['UPLOAD_FOLDER'], str(int(cur_time)) + str(i) + filename + '.png')
@@ -69,31 +69,20 @@ def upload_file():
                 x, y, w, h = cv2.boundingRect(cnt)
                 cordinates.append((x, y, w, h))
                 # bounding the images
-                if (w * h)/size_image >= 0.005:
+                if 0.150 >= (w * h) / size_image >= 0.001:
                     cv2.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 1)
-
-            plt.imshow(im)
-            cv2.namedWindow('detecttable', cv2.WINDOW_NORMAL)
+            # plt.imshow(im)
+            # cv2.namedWindow('detecttable', cv2.WINDOW_NORMAL)
             cv2.imwrite('detecttable.jpg', im)
             # cap = round(max(image.shape[0], image.shape[1]) * 0.005)
-            cont_path = os.path.join(app.config['UPLOAD_FOLDER'], "contourse.txt")
-            f = open(cont_path + '.txt', 'w')
-            for i in range(0, len(contours)):
-                x, y, w, h = cv2.boundingRect(contours[i])
-                f.write(str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h) + '|')
-                coordinates.append((x, y, w, h))
-            coordinates = sorted(coordinates, key=lambda coord: coord[1])
+
+            cordinates = sorted(cordinates, key=lambda coord: coord[1])
             cur_list = []
             lastY = 0
             result_table = []
-            for rect in coordinates:
+            for rect in cordinates:
                 x, y, w, h = rect
-                cur_img_by_rect = gray[y:y + h, x:x + w]
-                cur_path_rect = os.path.join(app.config['UPLOAD_FOLDER'],
-                                             str(int(cur_time)) + str(x) + str(y) + str(w) + str(h) + filename + '.png')
-
-                im = Image.fromarray(cur_img_by_rect)
-                im.save(cur_path_rect)
+                cur_img_by_rect = im[y:y + h, x:x + w]
 
                 line_parse = pytesseract.image_to_string(cur_img_by_rect, lang='rus')
                 line_parse = line_parse.strip().replace('\n', ' ')
@@ -106,7 +95,8 @@ def upload_file():
                     cur_list = [line_parse]
             result_table.append(cur_list)
             result_file.append(result_table)
-
+        with open('result_value.txt', 'w') as f:
+            f.write(str(result_file))
         return render_template("uploaded.html", displaytext=result_file, fname=filename)
 
 
