@@ -1,9 +1,12 @@
 FROM first_stage_build_ocr-parse_service:latest
 
-COPY .. /app
+RUN mkdir -p /app
 WORKDIR /app
-RUN pip install -r requirements.txt
+COPY app.py .
+COPY templates /app/templates
+COPY static /app/static
 EXPOSE 5000
 RUN chmod -x app.py
+RUN mkdir -p /app/static/uploads
 ENTRYPOINT ["python3"]
 CMD ["app.py"]

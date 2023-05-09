@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, make_response
 from werkzeug.utils import secure_filename
 from pdf2image import convert_from_path
 
+import json
 import numpy as np
 import os, shutil
 import pytesseract
@@ -90,7 +91,7 @@ def upload_file():
                         f.write(str(ell))
                         f.write('\n')
                     f.write('\n')
-            return result_file
+            return make_response(str(result_file))
     finally:
         for filename in os.listdir(app.config['UPLOAD_FOLDER']):
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -106,4 +107,3 @@ def upload_file():
 if __name__ == '__main__':
     port = 5000
     app.run(debug=True, host='0.0.0.0', port=port)
-    # app.run(host="0.0.0.0", port=5000, debug=True)
