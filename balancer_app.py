@@ -13,7 +13,8 @@ app = Flask(__name__)
 UPLOAD_FOLDER = './static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
-
+max_threads = int(os.environ['THREAD_BY_REQUEST'])
+nginx_host = os.environ['NGINX_HOST']
 
 @app.route("/")
 def index():
@@ -25,11 +26,10 @@ def upload_file():
     try:
         if request.method == 'POST':
             f = request.files['file']
-            # create a secure filename
+
             filename = secure_filename(f.filename)
             filename = os.path.splitext(filename)[0]
 
-            # save file to /static/uploads
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             f.save(filepath)
             cur_time = time.time()
@@ -45,13 +45,13 @@ def upload_file():
                 res_paths.append(cur_path)
 
             result_file = []
-            nginx_path = os.environ['NGINX_HOST'] + '/uploader'
-            with ThreadPoolExecutor(max_workers=2) as executor:
+            nginx_path = nginx_host + '/uploader'
+            with ThreadPoolExecutor(max_workers=max_threads) as executor:
                 processes = {executor.submit(recognize_file, nginx_path, query) for query in res_paths}
                 for result in concurrent.futures.as_completed(processes):
                     result_file.append(result.result())
 
-            return make_response(str(result_file))
+            return make_response(str(result_file).replace('\\\'', '\''))
     finally:
         for filename in os.listdir(app.config['UPLOAD_FOLDER']):
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)

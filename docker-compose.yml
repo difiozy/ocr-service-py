@@ -7,11 +7,14 @@ services:
       - "5000"
     depends_on:
       - balancer
+    deploy:
+      replicas: ${DEPLOY_REPLICAS}
 
   balancer:
     image: ocr-balancer:latest
     environment:
       - NGINX_HOST=http://nginx:4000
+      - THREAD_BY_REQUEST=${DEPLOY_REPLICAS}
     ports:
       - "5500:5500"
 

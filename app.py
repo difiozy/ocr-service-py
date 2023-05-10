@@ -21,11 +21,10 @@ def upload_file():
     try:
         if request.method == 'POST':
             f = request.files['file']
-            # create a secure filename
+
             filename = secure_filename(f.filename)
             filename = os.path.splitext(filename)[0]
 
-            # save file to /static/uploads
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             f.save(filepath)
             cur_time = time.time()
@@ -57,8 +56,6 @@ def upload_file():
                     if (0.150 > (w * h) / size_image) and ((w * h) / size_image >= 0.001):
                         coordinates.append((x, y, w, h))
                         cv2.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 1)
-
-                # cv2.imwrite('detectable.jpg', im)
 
                 coordinates = sorted(coordinates, key=lambda coord: (coord[1], coord[0]))
                 cur_list = []
