@@ -5,24 +5,25 @@ services:
     image: final_stage_build_ocr-parse_service:latest
     expose:
       - "5000"
-    depends_on:
-      - balancer
     deploy:
       replicas: ${DEPLOY_REPLICAS}
 
   balancer:
     image: ocr-balancer:latest
     environment:
-      - NGINX_HOST=http://nginx:4000
+      - OCR_PROXY_HOST=http://ocr:5000
       - THREAD_BY_REQUEST=${DEPLOY_REPLICAS}
+    depends_on:
+      - ocr
     ports:
-      - "5500:5500"
+      - "5500"
 
   nginx:
     image: nginx:latest
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      -
     depends_on:
-      - ocr
+      - balancer
     ports:
       - "4000:4000"

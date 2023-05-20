@@ -14,7 +14,7 @@ UPLOAD_FOLDER = './static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 max_threads = int(os.environ['THREAD_BY_REQUEST'])
-nginx_host = os.environ['NGINX_HOST']
+ocr_proxy = os.environ['OCR_PROXY_HOST']
 
 @app.route("/")
 def index():
@@ -23,6 +23,7 @@ def index():
 
 @app.route('/uploader', methods=['POST'])
 def upload_file():
+    res_paths = []
     try:
         if request.method == 'POST':
             f = request.files['file']
@@ -34,7 +35,6 @@ def upload_file():
             f.save(filepath)
             cur_time = time.time()
             inputpdf = PdfReader(open(filepath, "rb"))
-            res_paths = []
 
             for i in range(len(inputpdf.pages)):
                 cur_path = os.path.join(app.config['UPLOAD_FOLDER'], str(int(cur_time)) + str(i) + filename + '.png')
@@ -45,8 +45,8 @@ def upload_file():
                 res_paths.append(cur_path)
 
             result_file = []
-            nginx_path = nginx_host + '/uploader'
-            with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            nginx_path = ocr_proxy + '/uploader'
+            with ThreadPoolExecutor() as executor:
                 processes = {executor.submit(recognize_file, nginx_path, query) for query in res_paths}
                 for result in concurrent.futures.as_completed(processes):
                     result_file.append(result.result())
@@ -54,6 +54,8 @@ def upload_file():
             return make_response(str(result_file).replace('\\\'', '\''))
     finally:
         for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            if filename not in res_paths:
+                continue
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             try:
                 if os.path.isfile(file_path) or os.path.islink(file_path):
@@ -64,9 +66,9 @@ def upload_file():
                 print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
-def recognize_file(host: str, filename: str) -> str:
+def recognize_file(endpoint: str, filename: str) -> str:
     headers = {"enctype": "multipart/form-data"}
-    with requests.post(host, files={'file': open(filename, 'rb')}, headers=headers) as response:
+    with requests.post(endpoint, files={'file': open(filename, 'rb')}, headers=headers) as response:
         with open('res.txt', 'w') as f:
             f.write(str(response.text))
         return str(response.text)
