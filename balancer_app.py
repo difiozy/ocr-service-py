@@ -3,7 +3,6 @@ from werkzeug.utils import secure_filename
 from concurrent.futures import ThreadPoolExecutor
 from PyPDF2 import PdfWriter, PdfReader
 
-
 import os, shutil
 import requests
 import time
@@ -15,6 +14,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 max_threads = int(os.environ['THREAD_BY_REQUEST'])
 ocr_proxy = os.environ['OCR_PROXY_HOST']
+
 
 @app.route("/")
 def index():
@@ -46,7 +46,7 @@ def upload_file():
 
             result_file = []
             nginx_path = ocr_proxy + '/uploader'
-            with ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor(max_workers=max_threads*3) as executor:
                 processes = {executor.submit(recognize_file, nginx_path, query) for query in res_paths}
                 for result in concurrent.futures.as_completed(processes):
                     result_file.append(result.result())
@@ -67,8 +67,9 @@ def upload_file():
 
 
 def recognize_file(endpoint: str, filename: str) -> str:
-    headers = {"enctype": "multipart/form-data"}
-    with requests.post(endpoint, files={'file': open(filename, 'rb')}, headers=headers) as response:
+    headers = {"enctype": "multipart/form-data",
+               'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+    with requests.post(endpoint, files={'file': open(filename, 'rb'), }, headers=headers) as response:
         with open('res.txt', 'w') as f:
             f.write(str(response.text))
         return str(response.text)

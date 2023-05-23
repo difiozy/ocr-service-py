@@ -18,6 +18,7 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 
 @app.route('/uploader', methods=['POST'])
 def upload_file():
+    res_paths = []
     try:
         if request.method == 'POST':
             f = request.files['file']
@@ -29,7 +30,6 @@ def upload_file():
             f.save(filepath)
             cur_time = time.time()
             images = convert_from_path(filepath, 900)
-            res_paths = []
             for i in range(len(images)):
                 cur_path = os.path.join(app.config['UPLOAD_FOLDER'], str(int(cur_time)) + str(i) + filename + '.png')
                 images[i].save(cur_path)
@@ -65,7 +65,7 @@ def upload_file():
                     x, y, w, h = rect
                     cur_img_by_rect = im[y:y + h, x:x + w]
 
-                    line_parse = pytesseract.image_to_string(cur_img_by_rect, lang='rus+eng')
+                    line_parse = pytesseract.image_to_string(cur_img_by_rect, lang='rus')
                     line_parse = line_parse.strip().replace('\n', ' ')
                     if abs(lastY - y) < 0.1:
                         cur_list.append(line_parse)
@@ -85,6 +85,8 @@ def upload_file():
             return make_response(str(result_file))
     finally:
         for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            if filename not in res_paths:
+                continue
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             try:
                 if os.path.isfile(file_path) or os.path.islink(file_path):
